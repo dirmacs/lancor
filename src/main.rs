@@ -210,6 +210,49 @@ impl LlamaCppClient {
             .await
             .context("Failed to parse chat completion response")
     }
+
+    /// Send a streaming chat completion request
+    pub async fn chat_completion_stream(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<impl futures::Stream<Item = Result<ChatCompletionChunk>>> {
+        let url = format!("{}/v1/chat/completions", self.base_url);
+
+        let response = self
+            .http_client
+            .post(&url)
+            .json(&request)
+            .send()
+            .await
+            .context("Failed to send streaming chat completion request")?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().await.unwrap_or_default();
+            anyhow::bail!("API error({}): {}", status, error_text);
+        }
+
+        let stream = response.bytes_stream().map(|result| {
+            let bytes = result.context("Failed to read stream chunk")?;
+            let text = String::from_utf8_lossy(&bytes);
+
+            for line in text.lines() {
+                if line.starts_with("data: ") {
+                    let data = &line[6..];
+                    if data == "[DONE]" {
+                        continue;
+                    }
+                    let chunk: ChatCompletionChunk =
+                        serde_json::from_str(data).context("Failed to parse chunk")?;
+                    return Ok(chunk);
+                }
+            }
+
+            anyhow::bail!("No valid data in chunk")
+        });
+
+        Ok(stream)
+    }
 }
 
 fn main() {
