@@ -1,12 +1,23 @@
 [package]
 name = "lancor"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = ["dirmacs <contact@dirmacs.com>"]
+description = "Rust client for llama.cpp's OpenAI compatible API server"
+readme = "README.md"
+homepage = "https://github.com/dirmacs/lancor"
+repository = "https://github.com/dirmacs/lancor"
+license = "GPL-3.0"
+keywords = ["llama", "llm", "ai", "openai", "api"]
+categories = ["api-bindings", "asynchronous"]
 
 [dependencies]
-anyhow = "1.0.100"
-futures = "0.3.31"
-reqwest = { version = "0.12.24", features = ["json", "stream"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-tokio = { version = "1.48.0", features = ["full"] }
+anyhow = "1.0"
+futures = "0.3"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "macros", "rt-multi-thread"] }

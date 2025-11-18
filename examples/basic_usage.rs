@@ -5,11 +5,14 @@ use lancor::{ChatCompletionRequest, CompletionRequest, EmbeddingRequest, LlamaCp
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize client
-    let client = LlamaCppClient::with_api_key("http://localhost:1337", "jafong")?;
+    let client = LlamaCppClient::new("http://localhost:8080")?;
+
+    // Or with API key:
+    // let client = LlamaCppClient::with_api_key("http://localhost:8080", "your-api-key")?;
 
     // Example 1: Simple chat completion
     println!("=== Chat Completion Example ===");
-    let request = ChatCompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS")
+    let request = ChatCompletionRequest::new("your-model-name")
         .message(Message::system("You are a helpful assistant."))
         .message(Message::user("What is Rust programming language?"))
         .max_tokens(100)
@@ -21,7 +24,7 @@ async fn main() -> Result<()> {
 
     // Example 2: Streaming chat completion
     println!("\n=== Streaming Chat Completion Example ===");
-    let streaming_request = ChatCompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS")
+    let streaming_request = ChatCompletionRequest::new("your-model-name")
         .message(Message::user("Count from 1 to 5."))
         .stream(true)
         .max_tokens(50);
@@ -39,17 +42,16 @@ async fn main() -> Result<()> {
 
     // Example 3: Text completion
     println!("\n=== Text Completion Example ===");
-    let completion_request =
-        CompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS", "The quick brown fox")
-            .max_tokens(20)
-            .temperature(0.8);
+    let completion_request = CompletionRequest::new("your-model-name", "The quick brown fox")
+        .max_tokens(20)
+        .temperature(0.8);
 
     let completion_response = client.completion(completion_request).await?;
     println!("Completion: {}", completion_response.content);
 
     // Example 4: Embeddings
     println!("\n=== Embedding Example ===");
-    let embedding_request = EmbeddingRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS", "Hello, world!");
+    let embedding_request = EmbeddingRequest::new("your-model-name", "Hello, world!");
 
     let embedding_response = client.embedding(embedding_request).await?;
     println!(
