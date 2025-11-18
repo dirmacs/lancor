@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [0.1.0] - YYYY-MM-DD
+## [0.1.0] - 2025-11-18
 
 ### Added
 - Initial public release
@@ -41,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Helper methods for creating system/user/assistant messages
 - Comprehensive README with usage examples
 - Basic usage example in `examples/` directory
+
+## [0.1.1] - 2025-11-18
+
+### Changes
+- Bumped version to 0.1.1
+- Updated Rust edition to 2024
 
 [Unreleased]: https://github.com/yourusername/lancor/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yourusername/lancor/releases/tag/v0.1.0
