@@ -166,7 +166,7 @@ ChatCompletionRequest::new("model")
 
 ## Requirements
 
-- Rust 1.70 or later
+- Rust 1.91 or later
 - A running llama.cpp server with OpenAI-compatible API enabled
 
 ## Running llama.cpp Server
