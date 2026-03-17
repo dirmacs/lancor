@@ -1,65 +1,97 @@
 use anyhow::Result;
-use futures::stream::StreamExt;
-use lancor::{ChatCompletionRequest, CompletionRequest, EmbeddingRequest, LlamaCppClient, Message};
+use lancor::hub::HubClient;
+use std::io::Write;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize client
-    let client = LlamaCppClient::with_api_key("http://localhost:1337", "jafong")?;
+    let args: Vec<String> = std::env::args().collect();
 
-    // Example 1: Simple chat completion
-    println!("=== Chat Completion Example ===");
-    let request = ChatCompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS")
-        .message(Message::system("You are a helpful assistant."))
-        .message(Message::user("What is Rust programming language?"))
-        .max_tokens(100)
-        .temperature(0.7);
+    match args.get(1).map(|s| s.as_str()) {
+        Some("pull") => {
+            let repo = args.get(2).map(|s| s.as_str())
+                .unwrap_or("unsloth/Qwen3.5-35B-A3B-GGUF");
+            let filename = args.get(3).map(|s| s.as_str());
 
-    let response = client.chat_completion(request).await?;
-    println!("Response: {}", response.choices[0].message.content);
-    println!("Tokens used: {}", response.usage.total_tokens);
+            let hub = HubClient::new()?;
 
-    // Example 2: Streaming chat completion
-    println!("\n=== Streaming Chat Completion Example ===");
-    let streaming_request = ChatCompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS")
-        .message(Message::user("Count from 1 to 5."))
-        .stream(true)
-        .max_tokens(50);
+            // If no filename given, list available GGUFs
+            let filename = match filename {
+                Some(f) => f.to_string(),
+                None => {
+                    println!("Listing GGUF files in {}...", repo);
+                    let files = hub.list_gguf(repo).await?;
+                    if files.is_empty() {
+                        eprintln!("No GGUF files found in {}", repo);
+                        return Ok(());
+                    }
+                    for f in &files {
+                        let size_mb = f.size.unwrap_or(0) as f64 / 1_048_576.0;
+                        println!("  {:<50} {:>8.1} MB", f.filename, size_mb);
+                    }
+                    eprintln!("\nUsage: lancor pull {} <filename>", repo);
+                    return Ok(());
+                }
+            };
 
-    let mut stream = client.chat_completion_stream(streaming_request).await?;
-    print!("Streaming response: ");
-    while let Some(chunk_result) = stream.next().await {
-        if let Ok(chunk) = chunk_result {
-            if let Some(content) = &chunk.choices[0].delta.content {
-                print!("{}", content);
+            println!("Downloading {}/{}...", repo, filename);
+
+            let progress: lancor::hub::ProgressFn = Box::new(|downloaded, total| {
+                if total > 0 {
+                    let pct = (downloaded as f64 / total as f64) * 100.0;
+                    let dl_mb = downloaded as f64 / 1_048_576.0;
+                    let tot_mb = total as f64 / 1_048_576.0;
+                    eprint!("\r  {:.1}/{:.1} MB ({:.1}%)", dl_mb, tot_mb, pct);
+                    let _ = std::io::stderr().flush();
+                }
+            });
+
+            let path = hub.download(repo, &filename, Some(progress)).await?;
+            eprintln!();
+            println!("Saved: {}", path.display());
+        }
+
+        Some("list") => {
+            let hub = HubClient::new()?;
+            let cached = hub.list_cached()?;
+            if cached.is_empty() {
+                println!("No cached models. Use 'lancor pull <repo> <file>' to download.");
+                return Ok(());
+            }
+            println!("Cached models:");
+            for m in &cached {
+                let size_gb = m.size as f64 / 1_073_741_824.0;
+                println!("  {:<40} {:<40} {:.2} GB", m.repo_id, m.filename, size_gb);
+                println!("    {}", m.path.display());
             }
         }
+
+        Some("search") => {
+            let query = args[2..].join(" ");
+            let hub = HubClient::new()?;
+            let results = hub.search(&query, 10).await?;
+            for r in &results {
+                println!("  {:<60} downloads={}", r.repo_id, r.downloads);
+            }
+        }
+
+        Some("rm") => {
+            let repo = args.get(2).expect("usage: lancor rm <repo> <file>");
+            let file = args.get(3).expect("usage: lancor rm <repo> <file>");
+            let hub = HubClient::new()?;
+            hub.delete(repo, file).await?;
+            println!("Deleted: {}/{}", repo, file);
+        }
+
+        _ => {
+            println!("lancor — llama.cpp client + HuggingFace Hub model manager");
+            println!();
+            println!("Usage:");
+            println!("  lancor pull <repo> [file]    Download a GGUF model from HF Hub");
+            println!("  lancor list                  List cached models");
+            println!("  lancor search <query>        Search HF Hub for models");
+            println!("  lancor rm <repo> <file>      Delete a cached model");
+        }
     }
-    println!();
-
-    // Example 3: Text completion
-    println!("\n=== Text Completion Example ===");
-    let completion_request =
-        CompletionRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS", "The quick brown fox")
-            .max_tokens(20)
-            .temperature(0.8);
-
-    let completion_response = client.completion(completion_request).await?;
-    println!("Completion: {}", completion_response.content);
-
-    // Example 4: Embeddings
-    println!("\n=== Embedding Example ===");
-    let embedding_request = EmbeddingRequest::new("Qwen3-VL-2B-Instruct-IQ4_XS", "Hello, world!");
-
-    let embedding_response = client.embedding(embedding_request).await?;
-    println!(
-        "Embedding dimension: {:?}",
-        embedding_response.data[0].embedding.len()
-    );
-    println!(
-        "First 5 values: {:?}",
-        &embedding_response.data[0].embedding[..5]
-    );
 
     Ok(())
 }

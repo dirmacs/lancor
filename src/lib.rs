@@ -4,6 +4,8 @@ use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+pub mod hub;
+
 // ============================================================================
 // Request Types
 // ============================================================================
