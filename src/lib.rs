@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub mod hub;
+pub mod server;
 
 // ============================================================================
 // Request Types
