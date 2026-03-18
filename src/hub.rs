@@ -20,6 +20,13 @@ pub fn default_cache_dir() -> PathBuf {
 }
 
 /// File metadata from HuggingFace API.
+///
+/// Represents a file entry in a HuggingFace repository.
+///
+/// # Fields
+///
+/// * `filename` - Name of the file (originally `rfilename` in API response).
+/// * `size` - File size in bytes, if available.
 #[derive(Debug, Clone, Deserialize)]
 pub struct HubFile {
     #[serde(rename = "rfilename")]
@@ -29,6 +36,13 @@ pub struct HubFile {
 }
 
 /// Model info from HuggingFace API.
+///
+/// Contains metadata about a model repository.
+///
+/// # Fields
+///
+/// * `repo_id` - Repository identifier (e.g., "username/model-name").
+/// * `siblings` - List of files in the repository.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ModelInfo {
     #[serde(rename = "id")]
@@ -38,6 +52,13 @@ pub struct ModelInfo {
 }
 
 /// Search result from HuggingFace API.
+///
+/// Represents a model entry in search results.
+///
+/// # Fields
+///
+/// * `repo_id` - Repository identifier.
+/// * `downloads` - Number of downloads (may be approximate).
 #[derive(Debug, Clone, Deserialize)]
 pub struct SearchResult {
     #[serde(rename = "id")]
@@ -47,6 +68,27 @@ pub struct SearchResult {
 }
 
 /// Progress callback type.
+///
+/// A function called during downloads to report progress.
+///
+/// # Arguments
+///
+/// * `downloaded` - Number of bytes downloaded so far.
+/// * `total` - Total bytes to download (may be 0 if unknown).
+///
+/// # Example
+///
+/// ```
+/// use lancor::hub::ProgressFn;
+/// let progress: ProgressFn = Box::new(|downloaded, total| {
+///     if total > 0 {
+///         let percent = (downloaded as f64 / total as f64) * 100.0;
+///         println!("Download progress: {:.1}%", percent);
+///     } else {
+///         println!("Downloaded {} bytes (total unknown)", downloaded);
+///     }
+/// });
+/// ```
 pub type ProgressFn = Box<dyn Fn(u64, u64) + Send + Sync>;
 
 /// HuggingFace Hub client for model downloads.
@@ -58,6 +100,19 @@ pub struct HubClient {
 
 impl HubClient {
     /// Create a new HubClient with default cache directory.
+    ///
+    /// The default cache directory is `~/.cache/lancor/models/`.
+    ///
+    /// # Returns
+    ///
+    /// A new `HubClient` instance, or an error if the cache directory cannot be created.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use lancor::hub::HubClient;
+    /// let client = HubClient::new().unwrap();
+    /// ```
     pub fn new() -> Result<Self> {
         Self::with_cache_dir(default_cache_dir())
     }
@@ -138,8 +193,31 @@ impl HubClient {
 
     /// Download a file from HuggingFace Hub with progress reporting.
     ///
-    /// Returns the local path to the downloaded file.
-    /// Skips download if the file is already cached.
+    /// Returns the local path to the downloaded file. Skips download if the file
+    /// is already cached and valid (non-zero size).
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_id` - HuggingFace repository ID (e.g., "username/model-name").
+    /// * `filename` - Name of the file to download within the repository.
+    /// * `progress` - Optional callback invoked with `(downloaded_bytes, total_bytes)`.
+    ///
+    /// # Returns
+    ///
+    /// The local `PathBuf` where the file is cached.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use lancor::hub::HubClient;
+    /// let client = HubClient::new().unwrap();
+    /// let path = client.download(
+    ///     "TheBloke/Llama-2-7B-GGUF",
+    ///     "llama-2-7b.Q4_K_M.gguf",
+    ///     None
+    /// ).await?;
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub async fn download(
         &self,
         repo_id: &str,
@@ -212,6 +290,15 @@ impl HubClient {
     }
 
     /// Delete a cached model file.
+    ///
+    /// # Arguments
+    ///
+    /// * `repo_id` - HuggingFace repository ID.
+    /// * `filename` - Name of the file to delete.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` if deletion succeeded or the file didn't exist.
     pub async fn delete(&self, repo_id: &str, filename: &str) -> Result<()> {
         let path = self.cache_path(repo_id, filename);
         if path.exists() {
@@ -222,6 +309,22 @@ impl HubClient {
     }
 
     /// List all cached models.
+    ///
+    /// # Returns
+    ///
+    /// A vector of [`CachedModel`] structs representing all GGUF files in the cache.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use lancor::hub::HubClient;
+    /// let client = HubClient::new().unwrap();
+    /// let models = client.list_cached()?;
+    /// for model in models {
+    ///     println!("{}: {} ({} bytes)", model.repo_id, model.filename, model.size);
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
     pub fn list_cached(&self) -> Result<Vec<CachedModel>> {
         let mut models = Vec::new();
         if !self.cache_dir.exists() {
@@ -250,6 +353,15 @@ impl HubClient {
 }
 
 /// A cached model on disk.
+///
+/// Represents a GGUF model file stored in the local cache.
+///
+/// # Fields
+///
+/// * `repo_id` - HuggingFace repository ID (with `/` replaced by `--` in path).
+/// * `filename` - Name of the GGUF file.
+/// * `path` - Full filesystem path to the cached file.
+/// * `size` - File size in bytes.
 #[derive(Debug, Clone)]
 pub struct CachedModel {
     pub repo_id: String,
