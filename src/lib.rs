@@ -4,6 +4,7 @@ use reqwest::Client as HttpClient;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+pub mod bench;
 pub mod hub;
 pub mod server;
 
@@ -25,6 +26,8 @@ pub struct ChatCompletionRequest {
     pub stream: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stop: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_template_kwargs: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -342,7 +345,13 @@ impl ChatCompletionRequest {
             top_p: None,
             stream: None,
             stop: None,
+            chat_template_kwargs: None,
         }
+    }
+
+    pub fn disable_thinking(mut self) -> Self {
+        self.chat_template_kwargs = Some(serde_json::json!({"enable_thinking": false}));
+        self
     }
 
     pub fn message(mut self, message: Message) -> Self {

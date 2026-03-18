@@ -1,6 +1,9 @@
 use anyhow::Result;
+use lancor::bench;
 use lancor::hub::HubClient;
+use lancor::server::ServerConfig;
 use std::io::Write;
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -82,14 +85,114 @@ async fn main() -> Result<()> {
             println!("Deleted: {}/{}", repo, file);
         }
 
+        Some("bench") => {
+            // lancor bench <model_path> [--label NAME] [--port PORT] [--json]
+            // lancor bench --all                  (bench all cached models)
+            // lancor bench --url http://host:port  (bench against running server)
+            let mut model_path: Option<PathBuf> = None;
+            let mut label: Option<String> = None;
+            let mut port: u16 = 8080;
+            let mut json_output = false;
+            let mut against_url: Option<String> = None;
+            let mut bench_all = false;
+            let mut ngl: i32 = 99;
+            let mut ctx: u32 = 8192;
+
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--label" => { i += 1; label = args.get(i).cloned(); }
+                    "--port" => { i += 1; port = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(8080); }
+                    "--json" => { json_output = true; }
+                    "--url" => { i += 1; against_url = args.get(i).cloned(); }
+                    "--all" => { bench_all = true; }
+                    "--ngl" => { i += 1; ngl = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(99); }
+                    "--ctx" => { i += 1; ctx = args.get(i).and_then(|s| s.parse().ok()).unwrap_or(8192); }
+                    arg if !arg.starts_with('-') && model_path.is_none() => {
+                        model_path = Some(PathBuf::from(arg));
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+
+            if let Some(ref url) = against_url {
+                // Bench against a running server
+                let lbl = label.unwrap_or_else(|| "running-server".into());
+                let cfg = bench::BenchConfig::new(&lbl, model_path.unwrap_or_default())
+                    .base_url(url);
+                println!("Benchmarking against {}...", url);
+                let result = bench::run_suite(&cfg).await?;
+                if json_output {
+                    println!("{}", bench::to_json(&[result])?);
+                } else {
+                    bench::print_table(&[result]);
+                }
+            } else if bench_all {
+                // Bench all cached models
+                let hub = HubClient::new()?;
+                let cached = hub.list_cached()?;
+                let gguf_models: Vec<_> = cached.into_iter()
+                    .filter(|m| m.filename.ends_with(".gguf"))
+                    .collect();
+
+                if gguf_models.is_empty() {
+                    println!("No cached GGUF models. Use 'lancor pull' first.");
+                    return Ok(());
+                }
+
+                println!("Benchmarking {} cached models...\n", gguf_models.len());
+                let models: Vec<_> = gguf_models.iter().map(|m| {
+                    let lbl = m.filename.trim_end_matches(".gguf").to_string();
+                    let scfg = ServerConfig::new(&m.path)
+                        .port(port)
+                        .gpu_layers(ngl)
+                        .ctx_size(ctx);
+                    (lbl, m.path.clone(), scfg)
+                }).collect();
+
+                let results = bench::compare(models).await?;
+                if json_output {
+                    println!("{}", bench::to_json(&results)?);
+                } else {
+                    bench::print_table(&results);
+                }
+            } else if let Some(path) = model_path {
+                // Bench a single model
+                let lbl = label.unwrap_or_else(|| {
+                    path.file_stem().unwrap_or_default().to_string_lossy().to_string()
+                });
+                let scfg = ServerConfig::new(&path)
+                    .port(port)
+                    .gpu_layers(ngl)
+                    .ctx_size(ctx);
+                println!("Benchmarking {}...", lbl);
+                let result = bench::run_suite_managed(&path, &lbl, scfg).await?;
+                if json_output {
+                    println!("{}", bench::to_json(&[result])?);
+                } else {
+                    bench::print_table(&[result]);
+                }
+            } else {
+                println!("Usage:");
+                println!("  lancor bench <model.gguf>        Bench a single model (manages server)");
+                println!("  lancor bench --all               Bench all cached models");
+                println!("  lancor bench --url http://h:p    Bench against a running server");
+                println!("  lancor bench ... --json           Output JSON");
+                println!("  lancor bench ... --ngl 99         GPU layers (default: 99)");
+                println!("  lancor bench ... --ctx 8192       Context size (default: 8192)");
+            }
+        }
+
         _ => {
-            println!("lancor — llama.cpp client + HuggingFace Hub model manager");
+            println!("lancor — llama.cpp client + HuggingFace Hub + model benchmarking");
             println!();
             println!("Usage:");
             println!("  lancor pull <repo> [file]    Download a GGUF model from HF Hub");
             println!("  lancor list                  List cached models");
             println!("  lancor search <query>        Search HF Hub for models");
             println!("  lancor rm <repo> <file>      Delete a cached model");
+            println!("  lancor bench <model|--all>   Benchmark models (5-test triage)");
         }
     }
 
