@@ -1,10 +1,21 @@
-# lancor
+<p align="center">
+  <img src="docs/static/img/lancor-logo.svg" width="128" alt="lancor">
+</p>
 
-End-to-end llama.cpp toolkit: Rust client for OpenAI-compatible API, HuggingFace Hub model management, llama-server orchestration, and a 5-test benchmark suite.
+<h1 align="center">Lancor</h1>
 
-[![Crates.io](https://img.shields.io/crates/v/lancor.svg)](https://crates.io/crates/lancor)
-[![Documentation](https://docs.rs/lancor/badge.svg)](https://docs.rs/lancor)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
+<p align="center">
+  End-to-end llama.cpp toolkit in Rust.<br>
+  API client, HuggingFace Hub, server orchestration, 5-test benchmark suite.
+</p>
+
+<p align="center">
+  <a href="https://crates.io/crates/lancor"><img src="https://img.shields.io/crates/v/lancor.svg" alt="crates.io"></a>
+  <a href="https://docs.rs/lancor"><img src="https://docs.rs/lancor/badge.svg" alt="docs.rs"></a>
+  <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0">
+</p>
+
+---
 
 ## Features
 
@@ -351,10 +362,17 @@ lancor bench model.gguf --json > results.json
 
 Then use `LlamaCppClient` to interact with it.
 
+## Ecosystem
+
+| Project | What |
+|---------|------|
+| [ares](https://github.com/dirmacs/ares) | Agentic AI server — uses lancor for local llama.cpp inference |
+| [pawan](https://github.com/dirmacs/pawan) | Self-healing CLI coding agent |
+| [daedra](https://dirmacs.github.io/daedra) | Web search MCP server |
+| [thulp](https://dirmacs.github.io/thulp) | Execution context engineering |
+
+Built by [DIRMACS](https://dirmacs.com).
+
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
-
-## Contributing
-
-Contributions welcome! Submit PRs or open issues.
+GPL-3.0

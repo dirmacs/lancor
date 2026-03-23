@@ -1,9 +1,9 @@
 [package]
 name = "lancor"
 version = "0.1.1"
-edition = "2024"
+edition = "2021"
 authors = ["dirmacs <contact@dirmacs.com>"]
-description = "Rust client for llama.cpp's OpenAI compatible API server"
+description = "End-to-end llama.cpp toolkit: API client, HuggingFace Hub, server orchestration, benchmarks"
 readme = "README.md"
 homepage = "https://github.com/dirmacs/lancor"
 repository = "https://github.com/dirmacs/lancor"

@@ -48,5 +48,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bumped version to 0.1.1
 - Updated Rust edition to 2024
 
-[Unreleased]: https://github.com/yourusername/lancor/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/yourusername/lancor/releases/tag/v0.1.0
+[Unreleased]: https://github.com/dirmacs/lancor/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/dirmacs/lancor/releases/tag/v0.1.0

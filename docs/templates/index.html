@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ config.title }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ get_url(path='img/lancor-logo.svg') }}">
+    <style>
+        :root { --bg: #0d1117; --fg: #c9d1d9; --accent: #58a6ff; --card: #161b22; --border: #30363d; --dim: #8b949e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+        .hero { text-align: center; padding: 4rem 1rem 2rem; }
+        .hero img { width: 96px; margin-bottom: 1rem; }
+        .hero h1 { font-size: 2.5rem; color: #fff; margin-bottom: 0.5rem; }
+        .hero p { color: var(--dim); font-size: 1.1rem; max-width: 640px; margin: 0 auto 1.5rem; }
+        .badges { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+        .badges img { height: 20px; }
+        .install { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.5rem; max-width: 480px; margin: 0 auto 3rem; font-family: monospace; font-size: 0.95rem; color: var(--accent); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+        .card h3 { color: #fff; margin-bottom: 0.5rem; }
+        .card p { color: var(--dim); font-size: 0.9rem; }
+        .section { max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
+        .section h2 { color: #fff; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        code { background: var(--card); padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.85rem; }
+        pre { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; }
+        pre code { background: none; padding: 0; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        footer { text-align: center; padding: 2rem; color: var(--dim); font-size: 0.85rem; border-top: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <img src="{{ get_url(path='img/lancor-logo.svg') }}" alt="Lancor">
+        <h1>Lancor</h1>
+        <p>End-to-end llama.cpp toolkit in Rust. API client, HuggingFace Hub model management, server orchestration, and a 5-test benchmark suite.</p>
+        <div class="badges">
+            <a href="https://crates.io/crates/lancor"><img src="https://img.shields.io/crates/v/lancor.svg" alt="crates.io"></a>
+            <a href="https://docs.rs/lancor"><img src="https://docs.rs/lancor/badge.svg" alt="docs.rs"></a>
+            <img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0">
+        </div>
+        <div class="install">lancor = "0.1.1"</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>LlamaCppClient</h3>
+            <p>Async OpenAI-compatible API client. Chat completions (streaming + non-streaming), text completions, embeddings. Builder pattern, type-safe.</p>
+        </div>
+        <div class="card">
+            <h3>HuggingFace Hub</h3>
+            <p>Pure Rust HF Hub client. Search models, list GGUF files, download with progress callbacks. Auto-detects <code>HF_TOKEN</code>. Local cache management.</p>
+        </div>
+        <div class="card">
+            <h3>Server Orchestration</h3>
+            <p>Programmatic control of <code>llama-server</code>, <code>llama-cli</code>, <code>llama-quantize</code>, <code>llama-bench</code>. Start, wait for health, stop. GPU layers, flash attention, mlock.</p>
+        </div>
+        <div class="card">
+            <h3>Benchmark Suite</h3>
+            <p>5-test triage: throughput (tok/s), tool calling, multi-tool, codegen (fizzbuzz), reasoning. Compare quantizations. JSON export. Auto-manages server.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Quick Start</h2>
+        <h3>API Client</h3>
+        <pre><code>use lancor::{LlamaCppClient, ChatCompletionRequest, Message};
+
+let client = LlamaCppClient::new("http://localhost:8080")?;
+let request = ChatCompletionRequest::new("your-model")
+    .message(Message::user("What is Rust?"))
+    .max_tokens(100);
+let response = client.chat_completion(request).await?;</code></pre>
+
+        <h3>CLI</h3>
+        <pre><code>lancor pull unsloth/Qwen3.5-35B-A3B-GGUF model-Q4_K_M.gguf
+lancor list
+lancor search "qwen3.5 gguf"
+lancor bench model-Q4_K_M.gguf --ngl 99 --json</code></pre>
+    </div>
+
+    <footer>
+        Built by <a href="https://dirmacs.com">DIRMACS</a> &middot;
+        <a href="https://github.com/dirmacs/lancor">GitHub</a> &middot;
+        <a href="https://crates.io/crates/lancor">crates.io</a> &middot;
+        <a href="https://docs.rs/lancor">docs.rs</a>
+    </footer>
+</body>
+</html>
