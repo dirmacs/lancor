@@ -1,6 +1,6 @@
 [package]
 name = "lancor"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["dirmacs <contact@dirmacs.com>"]
 description = "End-to-end llama.cpp toolkit: API client, HuggingFace Hub, server orchestration, benchmarks"
