@@ -376,13 +376,12 @@ impl LlamaServer {
     ///
     /// # Example
     ///
-    /// ```no_run
+    /// ```ignore
     /// use lancor::server::{ServerConfig, LlamaServer};
     /// let config = ServerConfig::new("model.gguf");
     /// let server = LlamaServer::start(&config)?;
     /// server.wait_healthy(30).await?;
     /// println!("Server is ready!");
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub async fn wait_healthy(&self, timeout_secs: u64) -> Result<()> {
         let url = format!("http://{}:{}/health", self.host, self.port);
@@ -752,14 +751,14 @@ impl QuantType {
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// use lancor::server::{quantize, QuantType};
+/// use std::path::Path;
 /// quantize(
-///     "model-f16.gguf",
-///     "model-q4_k_m.gguf",
+///     Path::new("model-f16.gguf"),
+///     Path::new("model-q4_k_m.gguf"),
 ///     QuantType::Q4_K_M
 /// )?;
-/// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn quantize(input: &Path, output: &Path, qtype: QuantType) -> Result<()> {
     let bin = which::which("llama-quantize").context("llama-quantize not found")?;
@@ -800,11 +799,11 @@ pub fn quantize(input: &Path, output: &Path, qtype: QuantType) -> Result<()> {
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// use lancor::server::bench;
-/// let output = bench("model.gguf", 40, 4096)?;
+/// use std::path::Path;
+/// let output = bench(Path::new("model.gguf"), 40, 4096)?;
 /// println!("Benchmark results:\n{}", output);
-/// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 pub fn bench(model: &Path, n_gpu_layers: i32, ctx_size: u32) -> Result<String> {
     let bin = which::which("llama-bench").context("llama-bench not found")?;

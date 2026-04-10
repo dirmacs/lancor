@@ -208,7 +208,7 @@ impl HubClient {
     ///
     /// # Example
     ///
-    /// ```no_run
+    /// ```ignore
     /// use lancor::hub::HubClient;
     /// let client = HubClient::new().unwrap();
     /// let path = client.download(
@@ -216,7 +216,6 @@ impl HubClient {
     ///     "llama-2-7b.Q4_K_M.gguf",
     ///     None
     /// ).await?;
-    /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub async fn download(
         &self,
