@@ -22,9 +22,15 @@
 # on dirmacs/skywalkers run 38064108686), so every estate CI job standardizes
 # on `--engine Llvm`: source-based instrumentation (-Cinstrument-coverage +
 # llvm-profdata + llvm-cov), no ptrace, no personality change. That is why
-# the toolchain step installs llvm-tools-preview. Local measurement on the
-# build host ran the same suite under ptrace; llvm-vs-ptrace coverage deltas
-# on comparable suites are inside the floor's ~3pp margin.
+# the toolchain step installs llvm-tools-preview.
+#
+# One measured engine caveat, this repo: ptrace (used for the first local
+# measurement) attributes doc-test execution to lib.rs — 56 of its 137 lines
+# "covered" by the 31 doc-tests — reporting 13.89% (90/648). The llvm engine
+# does not run doc-tests under instrumentation and reports the true
+# unit-test coverage of 4.92% (34/691); local llvm and ubuntu-latest llvm
+# agree exactly. This job's floor is set against the llvm number, and the
+# doc-test step below keeps the doc half of the suite running in CI.
 #
 # No rust-toolchain.toml in this repo and no MSRV promise, so the toolchain
 # step installs stable explicitly via dtolnay/rust-toolchain@stable.
@@ -59,12 +65,13 @@ jobs:
       # Repo-specific constants, measured on the first run — see the PR that
       # added this job for the numbers and the ratchet.
       #
-      # Measured under tarpaulin 0.37.5 / ptrace on the build host:
-      #   line coverage 13.89% (90/648 lines); 34 tests passing
+      # Measured under tarpaulin 0.37.5 / Llvm engine (the engine this job
+      # uses; local build host and ubuntu-latest agree exactly):
+      #   line coverage 4.92% (34/691 lines); 34 tests passing
       #   (3 unit + 31 doc, 4 ignored).
       #   worst maintained-surface CRAP 380 = `QuantType::as_str`
       #   (src/server.rs:721, CC 19, 0% coverage).
-      COVERAGE_FLOOR: "11"
+      COVERAGE_FLOOR: "2"
       CRAP_THRESHOLD: "420"
     steps:
       - name: checkout
@@ -111,10 +118,20 @@ jobs:
       - name: coverage gate (tarpaulin, llvm engine)
         # Single-package repo (no workspace members), so no --workspace.
         # reqwest pulls the native-tls/openssl stack on ubuntu, which already
-        # carries build-essential and pkg-config.
+        # carries build-essential and pkg-config. This run executes the unit
+        # suite under instrumentation — the llvm engine does NOT run
+        # doc-tests under instrumentation, which is why the next step exists.
         run: >-
           cargo tarpaulin --engine Llvm --locked
           --out Lcov --fail-under "$COVERAGE_FLOOR" --timeout 300
+
+      - name: doc-tests
+        # The llvm coverage run above executes only the unit-test binaries:
+        # this crate's 31 doc-tests (the bulk of its suite) are compiled by
+        # rustdoc and never appear under instrumentation, so without this
+        # step CI would silently stop running most of the tests. Cheap (~4s)
+        # and the real suite-correctness gate for the examples in the docs.
+        run: cargo test --doc --locked
 
       - name: CRAP gate (fed by this run's coverage, entry point excluded)
         # `--exclude '**/main.rs'`: `main` is the CLI entry point — clap-style
